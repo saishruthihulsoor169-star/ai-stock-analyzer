@@ -1,9 +1,9 @@
 name: Daily Stock Report
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '30 3 * * *'
-  workflow_dispatch:
 
 jobs:
   run-script:
