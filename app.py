@@ -3,64 +3,66 @@ import smtplib
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
 
 from stock_utils import analyze_stock
 
+st.set_page_config(page_title="AI Stock Analyzer", layout="centered")
+
 st.title("📊 AI Stock Analyzer")
 
-# Input
-stock = st.text_input("Enter Stock Symbol (e.g. TCS.NS)")
+stocks_input = st.text_input("Enter Stock Symbols (comma separated)", "TCS.NS, INFY.NS")
 receiver = st.text_input("Enter your Email")
 
 if st.button("Analyze & Send Report"):
-    if stock and receiver:
 
-        data, trend, headlines = analyze_stock(stock)
-        suggestion = "BUY 🟢" if "UP" in trend else "SELL 🔴"
+    if stocks_input and receiver:
 
-        st.subheader("📈 Result")
-        st.write("Trend:", trend)
-        st.write("Suggestion:", suggestion)
+        stocks = [s.strip() for s in stocks_input.split(",")]
 
-        st.subheader("📰 News")
-        for h in headlines:
-            st.write("-", h)
+        results = []
 
-        st.image("chart.png")
+        for stock in stocks:
+            result = analyze_stock(stock)
+            results.append((stock, result))
 
-        # 🔐 Email credentials
+        st.subheader("📈 Results")
+
+        for stock, res in results:
+            st.markdown(f"### {stock}")
+            st.write("Trend:", res["trend"])
+            st.write("Change:", f'{res["change"]}%')
+            st.write("Sentiment:", res["sentiment"], f'({res["sentiment_score"]})')
+
+            for h in res["headlines"]:
+                st.write("-", h)
+
+        # 📧 Email
         sender = os.getenv("EMAIL_USER")
         password = os.getenv("EMAIL_PASS")
 
         try:
             msg = MIMEMultipart()
-            msg["Subject"] = "📊 Stock Report"
+            msg["Subject"] = "📊 Multi-Stock Report"
             msg["From"] = sender
             msg["To"] = receiver
 
-            html = f"""
-            <h2>📊 Stock Report</h2>
-            <p><b>Stock:</b> {stock}</p>
-            <p><b>Trend:</b> {trend}</p>
-            <p><b>Suggestion:</b> {suggestion}</p>
+            html = "<h2>📊 Stock Report</h2>"
 
-            <h3>📰 News</h3>
-            <ul>
-            """
+            for stock, res in results:
+                html += f"""
+                <h3>{stock}</h3>
+                <p>Trend: {res['trend']}</p>
+                <p>Change: {res['change']}%</p>
+                <p>Sentiment: {res['sentiment']} ({res['sentiment_score']})</p>
+                <ul>
+                """
 
-            for h in headlines:
-                html += f"<li>{h}</li>"
+                for h in res["headlines"]:
+                    html += f"<li>{h}</li>"
 
-            html += "</ul>"
+                html += "</ul>"
 
             msg.attach(MIMEText(html, "html"))
-
-            # attach chart
-            with open("chart.png", "rb") as img:
-                image = MIMEImage(img.read())
-                image.add_header('Content-ID', '<chart>')
-                msg.attach(image)
 
             server = smtplib.SMTP("smtp.gmail.com", 587)
             server.starttls()
@@ -68,13 +70,13 @@ if st.button("Analyze & Send Report"):
             server.send_message(msg)
             server.quit()
 
-            st.success("✅ Email sent successfully!")
+            st.success("📧 Email sent successfully!")
 
         except Exception as e:
-            st.error(f"❌ Failed to send email: {e}")
+            st.error(f"Error sending email: {e}")
 
     else:
-        st.warning("Please enter stock and email")
+        st.warning("Enter stock(s) and email")
 
        
 
