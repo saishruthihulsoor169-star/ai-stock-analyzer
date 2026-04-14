@@ -1,21 +1,30 @@
 import streamlit as st
 import smtplib
 import os
+import json
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from stock_utils import analyze_stock
 
-# Page config
+# ---------- USER STORAGE ----------
+def load_users():
+    try:
+        with open("users.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_users(data):
+    with open("users.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+# ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="AI Stock Analyzer", layout="centered")
 
-# Header
-st.markdown("<h1 style='text-align: center;'>📊 AI Stock Analyzer</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>Analyze any stock & get email reports</p>", unsafe_allow_html=True)
+# ---------- UI ----------
+st.title("📊 AI Stock Analyzer")
 
-st.divider()
-
-# Input
 stocks_input = st.text_input(
     "📌 Enter Stock Symbols (comma separated)",
     placeholder="e.g. tesla, AAPL, TCS.NS"
@@ -23,9 +32,19 @@ stocks_input = st.text_input(
 
 receiver = st.text_input("📧 Enter your Email")
 
+portfolio_input = st.text_input(
+    "💼 Portfolio (optional)",
+    placeholder="e.g. TCS.NS:10, AAPL:5"
+)
+
+alert_input = st.text_input(
+    "🔔 Alert (optional)",
+    placeholder="e.g. TSLA > 200"
+)
+
 st.info("💡 Examples:\n- tesla → TSLA\n- apple → AAPL\n- tcs → TCS.NS")
 
-# Name → ticker mapping
+# ---------- NAME → TICKER ----------
 name_to_ticker = {
     "tesla": "TSLA",
     "apple": "AAPL",
@@ -37,8 +56,8 @@ name_to_ticker = {
     "reliance": "RELIANCE.NS"
 }
 
-# Button
-if st.button("🚀 Analyze & Send Report", use_container_width=True):
+# ---------- BUTTON ----------
+if st.button("🚀 Analyze & Send Report"):
 
     if not stocks_input or not receiver:
         st.warning("⚠️ Enter stock and email")
@@ -53,14 +72,12 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
         else:
             stocks.append(s.upper())
 
-    # Limit
     if len(stocks) > 3:
         st.warning("⚠️ Max 3 stocks allowed")
         st.stop()
 
     results = []
 
-    # Analyze
     with st.spinner("Analyzing stocks..."):
         for stock in stocks:
             result = analyze_stock(stock)
@@ -79,24 +96,47 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
         st.error("❌ No valid stock data")
         st.stop()
 
-    # Display
+    # ---------- SAVE USER ----------
+    users = load_users()
+    users[receiver] = {
+        "stocks": stocks,
+        "portfolio": portfolio_input,
+        "alert": alert_input
+    }
+    save_users(users)
+
+    # ---------- DISPLAY ----------
     st.subheader("📈 Results")
 
     for stock, res in results:
         st.markdown(f"### {stock}")
-        st.markdown(f"**Trend:** {res['trend']}")
-        st.markdown(f"**Change:** {res['change']}%")
-        st.markdown(f"**Sentiment:** {res['sentiment']} ({res['sentiment_score']})")
+        st.write("Trend:", res["trend"])
+        st.write("Change:", f"{res['change']}%")
+        st.write("Sentiment:", res["sentiment"])
 
-        # Step 2 (AI part)
         if "recommendation" in res:
-            st.markdown(f"**Recommendation:** {res['recommendation']}")
-            st.markdown(f"**Confidence:** {res['confidence']}%")
+            st.write("Recommendation:", res["recommendation"])
+            st.write("Confidence:", f"{res['confidence']}%")
 
         for h in res["headlines"]:
             st.write("•", h)
 
-    # Email
+    # ---------- PORTFOLIO ----------
+    if portfolio_input:
+        st.subheader("💼 Portfolio")
+
+        for item in portfolio_input.split(","):
+            try:
+                name, qty = item.split(":")
+                st.write(f"{name.strip()} → {qty.strip()} shares")
+            except:
+                st.warning("Invalid portfolio format")
+
+    # ---------- ALERT ----------
+    if alert_input:
+        st.info(f"🔔 Alert saved: {alert_input}")
+
+    # ---------- EMAIL ----------
     sender = os.getenv("EMAIL_USER")
     password = os.getenv("EMAIL_PASS")
 
@@ -113,7 +153,7 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
             <h3>{stock}</h3>
             <p>Trend: {res['trend']}</p>
             <p>Change: {res['change']}%</p>
-            <p>Sentiment: {res['sentiment']} ({res['sentiment_score']})</p>
+            <p>Sentiment: {res['sentiment']}</p>
             """
 
             if "recommendation" in res:
