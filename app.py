@@ -1,3 +1,4 @@
+import streamlit as st
 import smtplib
 import os
 from email.mime.multipart import MIMEMultipart
@@ -6,82 +7,74 @@ from email.mime.image import MIMEImage
 
 from stock_utils import analyze_stock
 
-# 🔐 Email credentials
-sender = "saishruthihulsoor169@gmail.com"
-password = os.getenv("EMAIL_PASSWORD")
+st.title("📊 AI Stock Analyzer")
 
-# 📊 Stocks you want to track daily
-stocks = ["TCS.NS", "INFY.NS"]
+# Input
+stock = st.text_input("Enter Stock Symbol (e.g. TCS.NS)")
+receiver = st.text_input("Enter your Email")
 
-# 📂 Check if emails file exists
-if not os.path.exists("emails.txt"):
-    print("No emails.txt file found ❌")
-    exit()
+if st.button("Analyze & Send Report"):
+    if stock and receiver:
 
-# 📥 Read emails
-with open("emails.txt", "r") as f:
-    emails = f.readlines()
-
-# 🚀 Loop through each user
-for receiver in emails:
-    receiver = receiver.strip()
-
-    if not receiver:
-        continue
-
-    try:
-        # 📊 Analyze stocks (use first stock for chart)
-        data, trend, headlines = analyze_stock(stocks[0])
-
+        data, trend, headlines = analyze_stock(stock)
         suggestion = "BUY 🟢" if "UP" in trend else "SELL 🔴"
 
-        # ✉️ Create email
-        msg = MIMEMultipart()
-        msg["Subject"] = "📊 Daily Stock Report"
-        msg["From"] = sender
-        msg["To"] = receiver
+        st.subheader("📈 Result")
+        st.write("Trend:", trend)
+        st.write("Suggestion:", suggestion)
 
-        # 🧠 Build HTML
-        html = f"""
-        <h2>📊 Daily Stock Report</h2>
-        <p><b>Stock:</b> {stocks[0]}</p>
-        <p><b>Trend:</b> {trend}</p>
-        <p><b>Suggestion:</b> {suggestion}</p>
-
-        <h3>📈 Price Chart</h3>
-        <img src="cid:chart" width="600">
-
-        <h3>📰 News</h3>
-        <ul>
-        """
-
+        st.subheader("📰 News")
         for h in headlines:
-            html += f"<li>{h}</li>"
+            st.write("-", h)
 
-        html += "</ul>"
+        st.image("chart.png")
 
-        msg.attach(MIMEText(html, "html"))
+        # 🔐 Email credentials
+        sender = os.getenv("EMAIL_USER")
+        password = os.getenv("EMAIL_PASS")
 
-        # 📈 Attach chart image
         try:
-            with open("chart.png", "rb") as img_file:
-                img = MIMEImage(img_file.read())
-                img.add_header('Content-ID', '<chart>')
-                msg.attach(img)
-        except:
-            print("Chart not found, skipping image")
+            msg = MIMEMultipart()
+            msg["Subject"] = "📊 Stock Report"
+            msg["From"] = sender
+            msg["To"] = receiver
 
-        # 📤 Send email
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender, password)
-        server.send_message(msg)
-        server.quit()
+            html = f"""
+            <h2>📊 Stock Report</h2>
+            <p><b>Stock:</b> {stock}</p>
+            <p><b>Trend:</b> {trend}</p>
+            <p><b>Suggestion:</b> {suggestion}</p>
 
-        print(f"Email sent to {receiver} ✅")
+            <h3>📰 News</h3>
+            <ul>
+            """
 
-    except Exception as e:
-        print(f"Failed for {receiver}: {e}")
+            for h in headlines:
+                html += f"<li>{h}</li>"
+
+            html += "</ul>"
+
+            msg.attach(MIMEText(html, "html"))
+
+            # attach chart
+            with open("chart.png", "rb") as img:
+                image = MIMEImage(img.read())
+                image.add_header('Content-ID', '<chart>')
+                msg.attach(image)
+
+            server = smtplib.SMTP("smtp.gmail.com", 587)
+            server.starttls()
+            server.login(sender, password)
+            server.send_message(msg)
+            server.quit()
+
+            st.success("✅ Email sent successfully!")
+
+        except Exception as e:
+            st.error(f"❌ Failed to send email: {e}")
+
+    else:
+        st.warning("Please enter stock and email")
 
        
 
