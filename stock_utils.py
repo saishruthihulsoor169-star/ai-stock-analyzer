@@ -7,7 +7,7 @@ def analyze_stock(stock_name):
     try:
         stock = yf.Ticker(stock_name)
 
-        # 🛑 Delay to avoid rate limit
+        # Avoid rate limit
         time.sleep(2)
 
         data = stock.history(period="3mo")
@@ -17,10 +17,10 @@ def analyze_stock(stock_name):
 
         latest = data['Close'].iloc[-1]
         prev = data['Close'].iloc[-2]
-        avg = data['Close'].mean()
 
         change_percent = ((latest - prev) / prev) * 100
-        trend = "UP 📈" if latest > avg else "DOWN 📉"
+
+        trend = "UP 📈" if latest > data['Close'].mean() else "DOWN 📉"
 
         news = stock.news
         headlines = [n.get('content', {}).get('title', '') for n in news[:5]]
