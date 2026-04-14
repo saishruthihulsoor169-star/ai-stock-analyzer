@@ -1,87 +1,76 @@
 import yfinance as yf
 import matplotlib.pyplot as plt
 from textblob import TextBlob
-import time
+
 
 def analyze_stock(stock_name):
     try:
+        # ---------------- FETCH DATA ----------------
         stock = yf.Ticker(stock_name)
-
-        # Avoid rate limit
-        time.sleep(2)
-
         data = stock.history(period="3mo")
 
+        # 🚨 Safety check
         if data.empty:
-            return None
+            return {"error": "No data found for this stock"}
 
+        # ---------------- BASIC CALCULATIONS ----------------
         latest = data['Close'].iloc[-1]
-        prev = data['Close'].iloc[-2]
+        prev = data['Close'].iloc[-2] if len(data) > 1 else latest
+        avg = data['Close'].mean()
 
-        # 📈 % change
-        change_percent = ((latest - prev) / prev) * 100
+        # 📈 % Change
+        change_percent = ((latest - prev) / prev) * 100 if prev != 0 else 0
 
-        # 📊 Moving averages (better trend detection)
-        ma_short = data['Close'].tail(5).mean()
-        ma_long = data['Close'].tail(20).mean()
+        # 📊 Trend
+        trend = "UP 📈" if latest > avg else "DOWN 📉"
 
-        if ma_short > ma_long:
-            trend = "UP 📈"
-            trend_score = 1
-        else:
-            trend = "DOWN 📉"
-            trend_score = -1
+        # ---------------- NEWS + SENTIMENT ----------------
+        news = stock.news if hasattr(stock, "news") else []
 
-        # 📰 News
-        news = stock.news
-        headlines = [n.get('content', {}).get('title', '') for n in news[:5]]
+        headlines = []
+        for n in news[:5]:
+            try:
+                title = n.get('content', {}).get('title', '')
+                if title:
+                    headlines.append(title)
+            except:
+                continue
 
-        # 😊 Sentiment
+        # 😊 Sentiment Analysis
         sentiment_score = 0
-        for h in headlines:
-            if h:
-                sentiment_score += TextBlob(h).sentiment.polarity
 
-        sentiment_score = sentiment_score / len(headlines) if headlines else 0
+        for h in headlines:
+            sentiment_score += TextBlob(h).sentiment.polarity
+
+        if len(headlines) > 0:
+            sentiment_score = sentiment_score / len(headlines)
+        else:
+            sentiment_score = 0
 
         if sentiment_score > 0:
             sentiment_label = "Positive 😊"
-            sentiment_flag = 1
         elif sentiment_score < 0:
             sentiment_label = "Negative 😟"
-            sentiment_flag = -1
         else:
             sentiment_label = "Neutral 😐"
-            sentiment_flag = 0
 
-        # 🔥 FINAL DECISION ENGINE (weighted)
-        final_score = (0.7 * trend_score) + (0.3 * sentiment_flag)
-
-        if final_score > 0:
-            recommendation = "BUY 🟢"
-        elif final_score < 0:
-            recommendation = "SELL 🔴"
-        else:
-            recommendation = "HOLD ⚪"
-
-        # 🎯 Confidence
-        confidence = round(abs(final_score) * 100)
-
-        # 📉 Chart
+        # ---------------- CHART ----------------
         plt.figure(figsize=(8, 4))
         plt.plot(data['Close'])
         plt.title(stock_name)
+        plt.xlabel("Time")
+        plt.ylabel("Price")
+        plt.grid(True)
         plt.savefig("chart.png")
         plt.close()
 
+        # ---------------- RETURN CLEAN DATA ----------------
         return {
             "trend": trend,
             "change": round(change_percent, 2),
             "headlines": headlines,
             "sentiment": sentiment_label,
-            "sentiment_score": round(sentiment_score, 2),
-            "recommendation": recommendation,
-            "confidence": confidence
+            "sentiment_score": round(sentiment_score, 2)
         }
 
     except Exception as e:
