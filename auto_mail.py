@@ -1,47 +1,33 @@
 import smtplib
-import json
-import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from supabase import create_client
+import os
 
 from stock_utils import analyze_stock
 
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 def load_users():
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
+    response = supabase.table("users").select("*").execute()
+    return response.data
 
 def send_email(receiver, results):
     sender = os.getenv("EMAIL_USER")
     password = os.getenv("EMAIL_PASS")
 
     msg = MIMEMultipart()
-    msg["Subject"] = "📊 Daily Stock Report"
+    msg["Subject"] = "Daily Stock Report"
     msg["From"] = sender
     msg["To"] = receiver
 
-    html = "<h2>📊 Daily Stock Report</h2><hr>"
+    html = "<h2>Daily Report</h2>"
 
     for stock, res in results:
-        html += f"""
-        <h3>{stock}</h3>
-        <p>Trend: {res['trend']}</p>
-        <p>Change: {res['change']}%</p>
-        <p>Sentiment: {res['sentiment']} ({res['sentiment_score']})</p>
-        """
-
-        if "recommendation" in res:
-            html += f"""
-            <p>Recommendation: {res['recommendation']}</p>
-            <p>Confidence: {res['confidence']}%</p>
-            """
-
-        html += "<ul>"
-        for h in res["headlines"]:
-            html += f"<li>{h}</li>"
-        html += "</ul><hr>"
+        html += f"<h3>{stock}</h3><p>{res['trend']}</p>"
 
     msg.attach(MIMEText(html, "html"))
 
@@ -54,12 +40,9 @@ def send_email(receiver, results):
 def main():
     users = load_users()
 
-    if not users:
-        print("No users found")
-        return
-
-    for email, data in users.items():
-        stocks = data.get("stocks", [])
+    for user in users:
+        email = user["email"]
+        stocks = user["stocks"].split(",")
 
         results = []
 
@@ -71,7 +54,6 @@ def main():
 
         if results:
             send_email(email, results)
-            print(f"Email sent to {email}")
 
 if __name__ == "__main__":
     main()
