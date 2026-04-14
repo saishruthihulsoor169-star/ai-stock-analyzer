@@ -1,4 +1,7 @@
+streamlit
 yfinance
+pandas
 matplotlib
-textblob
 supabase
+python-dotenv
+smtplib
