@@ -11,13 +11,20 @@ st.set_page_config(page_title="AI Stock Analyzer", layout="centered")
 
 # 🎯 UI Header
 st.markdown("<h1 style='text-align: center;'>📊 AI Stock Analyzer</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>Analyze multiple stocks & get instant email reports</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Analyze any stock & get instant email reports</p>", unsafe_allow_html=True)
 
 st.divider()
 
 # 🧾 Inputs
-stocks_input = st.text_input("📌 Enter Stock Symbols (comma separated)", "TCS.NS, INFY.NS")
+stocks_input = st.text_input(
+    "📌 Enter Stock Symbols (comma separated)",
+    placeholder="e.g. TCS.NS, INFY.NS, AAPL"
+)
+
 receiver = st.text_input("📧 Enter your Email")
+
+# 💡 Help text
+st.info("💡 Use correct ticker format:\n- Indian stocks: TCS.NS\n- US stocks: AAPL\n- Crypto: BTC-USD")
 
 # 🚀 Button
 if st.button("🚀 Analyze & Send Report", use_container_width=True):
@@ -36,11 +43,16 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
     results = []
 
     with st.spinner("🔍 Analyzing stocks..."):
+
         for stock in stocks:
             result = analyze_stock(stock)
 
-            if result is None or "error" in result:
-                st.error(f"❌ Failed to fetch {stock} (Rate limit / invalid symbol)")
+            if result is None:
+                st.error(f"❌ {stock} is invalid or no data found")
+                continue
+
+            if "error" in result:
+                st.error(f"❌ Failed to fetch {stock} (Rate limit or invalid)")
                 continue
 
             results.append((stock, result))
@@ -54,9 +66,14 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
 
     for stock, res in results:
         st.markdown(f"### {stock}")
-        st.write("📊 Trend:", res["trend"])
-        st.write("📈 Change:", f"{res['change']}%")
-        st.write("😊 Sentiment:", f"{res['sentiment']} ({res['sentiment_score']})")
+        st.markdown(f"**📊 Trend:** {res['trend']}")
+        st.markdown(f"**📈 Change:** {res['change']}%")
+        st.markdown(f"**😊 Sentiment:** {res['sentiment']} ({res['sentiment_score']})")
+
+        # 👇 If you already implemented Step 2, these will show
+        if "recommendation" in res:
+            st.markdown(f"**💡 Recommendation:** {res['recommendation']}")
+            st.markdown(f"**🎯 Confidence:** {res['confidence']}%")
 
         for h in res["headlines"]:
             st.write("•", h)
@@ -82,8 +99,16 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
             <p><b>Trend:</b> {res['trend']}</p>
             <p><b>Change:</b> {res['change']}%</p>
             <p><b>Sentiment:</b> {res['sentiment']} ({res['sentiment_score']})</p>
-            <ul>
             """
+
+            # Step 2 support
+            if "recommendation" in res:
+                html += f"""
+                <p><b>Recommendation:</b> {res['recommendation']}</p>
+                <p><b>Confidence:</b> {res['confidence']}%</p>
+                """
+
+            html += "<ul>"
 
             for h in res["headlines"]:
                 html += f"<li>{h}</li>"
@@ -102,6 +127,7 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
 
     except Exception as e:
         st.error(f"❌ Email failed: {e}")
+
 
        
 
