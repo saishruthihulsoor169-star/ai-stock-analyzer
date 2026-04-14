@@ -10,16 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt
+
+      - name: Debug secrets
+        run: |
+          echo "URL is $SUPABASE_URL"
+
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
 
       - name: Run script
         env:
