@@ -1,27 +1,28 @@
-name: Daily Email Automation
+name: Daily Stock Report
 
 on:
   schedule:
-    - cron: '0 9 * * *'   # runs daily at 9 AM UTC
-  workflow_dispatch:      # allows manual run
+    - cron: '30 3 * * *'   # 9:00 AM IST
+  workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
 
-      - name: Run email script
+      - name: Run script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
