@@ -64,19 +64,18 @@ if st.button("🚀 Analyze & Send Report", use_container_width=True):
     # 📊 Display Results
     st.subheader("📈 Analysis Results")
 
-    for stock, res in results:
-        st.markdown(f"### {stock}")
-        st.markdown(f"**📊 Trend:** {res['trend']}")
-        st.markdown(f"**📈 Change:** {res['change']}%")
-        st.markdown(f"**😊 Sentiment:** {res['sentiment']} ({res['sentiment_score']})")
+   for stock, res in results:
+    st.markdown(f"### {stock}")
+    st.markdown(f"**📊 Trend:** {res['trend']}")
+    st.markdown(f"**📈 Change:** {res['change']}%")
+    st.markdown(f"**😊 Sentiment:** {res['sentiment']} ({res['sentiment_score']})")
 
-        # 👇 If you already implemented Step 2, these will show
-        if "recommendation" in res:
-            st.markdown(f"**💡 Recommendation:** {res['recommendation']}")
-            st.markdown(f"**🎯 Confidence:** {res['confidence']}%")
+    if "recommendation" in res:
+        st.markdown(f"**💡 Recommendation:** {res['recommendation']}")
+        st.markdown(f"**🎯 Confidence:** {res['confidence']}%")
 
-        for h in res["headlines"]:
-            st.write("•", h)
+    for h in res["headlines"]:
+        st.write("•", h)
 
     # 📧 Email Sending
     sender = os.getenv("EMAIL_USER")
