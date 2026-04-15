@@ -4,7 +4,7 @@ from supabase import create_client
 import matplotlib.pyplot as plt
 
 # =========================
-# 🔐 Supabase Connection
+# 🔐 Supabase (Streamlit Secrets)
 # =========================
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
@@ -12,84 +12,75 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # =========================
-# 🎨 Page Config
+# 🎨 UI
 # =========================
 st.set_page_config(page_title="AI Stock Analyzer", layout="wide")
 
 st.title("📊 AI Stock Analyzer Pro")
-st.markdown("Analyze any stock, visualize trends, and receive daily reports 🚀")
+st.markdown("Analyze any stock, visualize trends, and get daily reports 🚀")
 
 # =========================
 # 🧾 Inputs
 # =========================
-stock_input = st.text_input(
-    "📌 Enter Stock Symbol (e.g. AAPL, TSLA, TCS.NS, BTC-USD)"
-)
-
-email = st.text_input("📧 Enter your Email for daily reports")
+stock_input = st.text_input("📌 Enter Stock (AAPL, TSLA, TCS.NS, BTC-USD)")
+email = st.text_input("📧 Enter Email for Daily Reports")
 
 # =========================
-# 🔍 Analyze Button
+# 🔍 Button
 # =========================
 if st.button("🚀 Analyze & Save"):
 
     if not stock_input:
-        st.warning("Please enter a stock symbol")
+        st.warning("Enter stock symbol")
         st.stop()
 
     result = get_stock_data(stock_input.upper())
 
-    # =========================
-    # ❌ Error Handling
-    # =========================
     if result is None:
-        st.error("❌ Invalid stock / API rate limit hit")
+        st.error("Invalid stock / Rate limit")
         st.stop()
 
-    # =========================
-    # ✅ Show Results
-    # =========================
-    st.success("✅ Analysis Complete")
+    st.success("Analysis Ready ✅")
 
-    st.subheader(f"📈 {stock_input.upper()} Analysis")
+    st.subheader(f"{stock_input.upper()} Analysis")
 
     col1, col2, col3 = st.columns(3)
-
-    col1.metric("💰 Price", result["price"])
-    col2.metric("📊 Change %", result["change"])
-    col3.metric("📉 Trend", result["trend"])
+    col1.metric("Price", result["price"])
+    col2.metric("Change %", result["change"])
+    col3.metric("Trend", result["trend"])
 
     # =========================
-    # 📊 Chart
+    # 📊 Chart (FIXED SIZE)
     # =========================
     st.subheader("📉 Price Trend")
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(6, 3))
     result["data"]["Close"].plot(ax=ax)
-    ax.set_title(f"{stock_input.upper()} Price Movement")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Price")
 
-    st.pyplot(fig)
+    ax.set_title(f"{stock_input.upper()} Price Movement", fontsize=10)
+    ax.set_xlabel("")
+    ax.set_ylabel("Price", fontsize=8)
+
+    st.pyplot(fig, use_container_width=True)
 
     # =========================
-    # 💾 Save to Supabase
+    # 💾 Save User
     # =========================
     if email:
-
         try:
-            supabase.table("users").upsert({
+            response = supabase.table("users").upsert({
                 "email": email,
                 "stocks": stock_input.upper()
             }).execute()
 
-            st.success("💾 Saved! You will receive daily reports at 9 AM 🚀")
+            st.write("DEBUG:", response)
+
+            st.success("Saved! Daily emails at 9 AM 🚀")
 
         except Exception as e:
-            st.error(f"❌ Failed to save user: {e}")
-
+            st.error(f"Save failed: {e}")
     else:
-        st.info("💡 Enter email to receive daily automated reports")
+        st.info("Enter email to receive daily reports")
 
 
        
