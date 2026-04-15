@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def get_stock_data(symbol):
-    data = yf.download(symbol, period="3mo")
+    data = yf.download(symbol, period="6mo")
 
     if data.empty:
         return None
@@ -14,44 +14,10 @@ def get_stock_data(symbol):
     return data
 
 
-def analyze_stock(data):
+def calculate_change(data):
     close = data["Close"].dropna()
 
     start = float(close.values[0])
     end = float(close.values[-1])
 
-    change = ((end - start) / start) * 100
-
-    trend = "UP 📈" if change > 0 else "DOWN 📉"
-
-    score = round(change / 10, 2)
-
-    if score > 0:
-        sentiment = "Positive 😊"
-        recommendation = "BUY"
-    elif score < 0:
-        sentiment = "Negative 😐"
-        recommendation = "SELL"
-    else:
-        sentiment = "Neutral 😶"
-        recommendation = "HOLD"
-
-    confidence = min(abs(score) * 10, 95)
-
-    return {
-        "trend": trend,
-        "change": round(change, 2),
-        "sentiment": sentiment,
-        "score": score,
-        "recommendation": recommendation,
-        "confidence": round(confidence, 2)
-    }
-
-
-def get_news(symbol):
-    return [
-        f"{symbol} shows strong market reaction",
-        f"Investors tracking {symbol} performance closely",
-        f"{symbol} influenced by global economic trends",
-        f"Analysts share outlook on {symbol}"
-    ]
+    return round(((end - start) / start) * 100, 2)
