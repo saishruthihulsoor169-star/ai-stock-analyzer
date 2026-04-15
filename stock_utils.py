@@ -1,31 +1,23 @@
 import yfinance as yf
 import requests
-import pandas as pd
 
 def get_stock_data(symbol):
     try:
-        df = yf.download(symbol, period="6mo", auto_adjust=True)
+        df = yf.download(symbol, period="6mo")
 
-        if df is None or df.empty:
+        # ❌ if empty → return None
+        if df.empty:
             return None
 
-        # 🔥 FIX ALL DATA ISSUES
-        df = df.reset_index()
-
-        df = df[["Date", "Close"]]
+        # 🔥 ONLY CLEAN WHAT'S NEEDED
+        df = df[["Close"]]
 
         df = df.dropna()
-
-        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
-
-        df = df.dropna()
-
-        df.set_index("Date", inplace=True)
 
         return df
 
     except Exception as e:
-        print("Stock fetch error:", e)
+        print("Error fetching stock:", e)
         return None
 
 
