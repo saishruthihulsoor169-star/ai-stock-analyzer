@@ -5,11 +5,10 @@ import pandas as pd
 def get_stock_data(symbol):
     data = yf.download(symbol, period="3mo")
 
-    # 🔥 Fix: ensure clean dataframe
     if data.empty:
         return None
 
-    # Sometimes columns are multi-index
+    # Fix multi-index issue
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
@@ -17,12 +16,8 @@ def get_stock_data(symbol):
 
 
 def analyze_stock(data):
-    if data is None or data.empty:
-        return None
+    close = data["Close"].dropna()
 
-    close = data["Close"]
-
-    # 🔥 FIX: force scalar values
     start = float(close.values[0])
     end = float(close.values[-1])
 
@@ -56,8 +51,8 @@ def analyze_stock(data):
 
 def get_news(symbol):
     return [
-        f"{symbol} reacting to market trends",
-        f"Analysts discuss {symbol} outlook",
-        f"{symbol} influenced by global economy",
-        f"Investors tracking {symbol} performance"
+        f"{symbol} sees movement due to earnings impact",
+        f"Market sentiment shifts around {symbol}",
+        f"Analysts discuss future growth of {symbol}",
+        f"{symbol} influenced by global tech trends"
     ]
