@@ -1,70 +1,70 @@
 import streamlit as st
-from stock_utils import get_stock_data, analyze_stock
+import matplotlib.pyplot as plt
 from supabase import create_client
+from stock_utils import get_stock_data, analyze_stock, get_news
 import os
 
-# 🔹 Supabase setup
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 🔹 UI
-st.set_page_config(page_title="AI Stock Analyzer", layout="wide")
+st.set_page_config(layout="wide")
 
 st.title("📊 AI Stock Analyzer (Pro Version)")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    stock = st.text_input("Enter Stock Symbol (e.g. AAPL, TSLA, TCS.NS)")
+    symbol = st.text_input("Enter Stock (AAPL, TCS.NS)", "AAPL")
 
 with col2:
-    email = st.text_input("Enter Email for Reports")
+    email = st.text_input("Enter Email")
 
 portfolio = st.text_input("Portfolio (optional)")
 alert = st.text_input("Alert (optional)")
 
-# 🔹 Button
 if st.button("🚀 Analyze Stock"):
+    data = get_stock_data(symbol)
+    result = analyze_stock(data)
 
-    if stock == "" or email == "":
-        st.warning("Please enter stock & email")
-    else:
-        data = get_stock_data(stock)
+    # GRAPH
+    st.subheader(f"{symbol} Analysis")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(data["Close"], color="cyan")
+    ax.set_facecolor("#0e1117")
+    fig.patch.set_facecolor("#0e1117")
+    st.pyplot(fig)
 
-        if data is None:
-            st.error("Invalid stock symbol")
-        else:
-            result = analyze_stock(data)
+    # METRICS
+    c1, c2, c3, c4 = st.columns(4)
 
-            # 📊 GRAPH (FIXED)
-            st.subheader(f"{stock} Price Chart")
-            st.line_chart(data.set_index("Date")["Close"])
+    c1.metric("Trend", result["trend"])
+    c2.metric("Change %", f"{result['change']}%")
+    c3.metric("Sentiment", result["sentiment"])
+    c4.metric("Confidence", f"{result['confidence']}%")
 
-            # 📊 METRICS
-            c1, c2, c3 = st.columns(3)
+    st.success(f"Recommendation: {result['recommendation']}")
 
-            c1.metric("Trend", result["trend"])
-            c2.metric("Change %", result["change"])
-            c3.metric("Recommendation", result["recommendation"])
+    # NEWS
+    st.subheader("📰 News")
+    news = get_news(symbol)
+    for n in news:
+        st.write("•", n)
 
-            st.markdown("### 🧠 AI Insight")
-            st.info(result["explanation"])
+    # SAVE USER (FIXED UPSERT)
+    if email:
+        try:
+            supabase.table("users").upsert({
+                "email": email,
+                "stocks": symbol,
+                "portfolio": portfolio,
+                "alert": alert
+            }).execute()
 
-            # 🔹 SAVE TO SUPABASE (UPSERT FIX)
-            try:
-                supabase.table("users").upsert({
-                    "email": email,
-                    "stocks": stock,
-                    "portfolio": portfolio,
-                    "alert": alert
-                }).execute()
-
-                st.success("Saved successfully!")
-
-            except Exception as e:
-                st.error(f"Save failed: {e}")
+            st.success("Saved successfully!")
+        except Exception as e:
+            st.error(f"Save failed: {e}")
 
 
        
