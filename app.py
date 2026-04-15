@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 from supabase import create_client
-from stock_utils import get_stock_data, calculate_change
+from stock_utils import get_stock_data, analyze_stock, get_news
 from ai_engine import generate_ai_report
 import os
 
@@ -64,7 +64,7 @@ if st.button("Analyze"):
     st.plotly_chart(fig, use_container_width=True)
 
     # AI ANALYSIS
-    change = calculate_change(data)
+    result = analyze_stock(df)
     ai = generate_ai_report(stock, change)
 
     st.subheader("🧠 AI Analysis")
