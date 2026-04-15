@@ -1,27 +1,27 @@
 import yfinance as yf
-import pandas as pd
 
 def get_stock_data(symbol):
     try:
-        stock = yf.Ticker(symbol)
-        df = stock.history(period="6mo")
-
-        if df.empty:
-            return None
-
-        latest = df.iloc[-1]
-        prev = df.iloc[-2]
-
-        change = ((latest["Close"] - prev["Close"]) / prev["Close"]) * 100
-
-        trend = "UP 📈" if change > 0 else "DOWN 📉"
-
-        return {
-            "data": df,
-            "price": round(latest["Close"], 2),
-            "change": round(change, 2),
-            "trend": trend
-        }
-
+        data = yf.download(symbol, period="6mo", interval="1d")
+        return data
     except:
         return None
+
+def analyze_stock(data):
+    change = ((data["Close"].iloc[-1] - data["Close"].iloc[0]) / data["Close"].iloc[0]) * 100
+
+    trend = "UP 📈" if change > 0 else "DOWN 📉"
+    recommendation = "BUY 🟢" if change > 0 else "SELL 🔴"
+
+    news = [
+        "Market reacting to global events",
+        "Stock influenced by economic trends",
+        "Investors showing mixed sentiment"
+    ]
+
+    return {
+        "trend": trend,
+        "change": f"{round(change,2)}%",
+        "recommendation": recommendation,
+        "news": news
+    }
