@@ -3,19 +3,20 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
 def generate_ai_report(stock, change):
     prompt = f"""
     Analyze stock {stock}.
 
     Change: {change}%
 
-    Give output STRICTLY in this format:
+    STRICT FORMAT:
 
-    Trend: ...
-    Sentiment: ...
-    Recommendation: ...
-    Confidence: ...%
-    Explanation: (2 lines)
+    Trend: UP/DOWN
+    Sentiment: Positive/Neutral/Negative
+    Recommendation: BUY/SELL/HOLD
+    Confidence: number%
+    Explanation: 2 lines only
     """
 
     response = client.chat.completions.create(
