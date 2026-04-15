@@ -1,3 +1,4 @@
+from mailer import send_email
 import streamlit as st
 import plotly.graph_objects as go
 from supabase import create_client
@@ -80,18 +81,37 @@ if st.button("Analyze"):
         st.write("•", n)
 
     # ---------- SAVE USER ----------
-    if email:
-        try:
-            supabase.table("users").upsert({
-                "email": email,
-                "stocks": stock
-            }).execute()
+   if email:
+    try:
+        supabase.table("users").upsert({
+            "email": email,
+            "stocks": stock
+        }).execute()
 
-            st.success("Saved & will receive email 🚀")
+        # 📩 EMAIL CONTENT
+        email_content = f"""
+        📊 AI Stock Report
 
-        except Exception as e:
-            st.error("Database error")
+        Stock: {stock}
+        Change: {change}%
 
+        🤖 AI Analysis:
+        {ai}
+
+        📰 News:
+        """ + "\n".join(news)
+
+        # 🚀 SEND EMAIL
+        send_email(
+            to_email=email,
+            subject=f"{stock} Stock Report",
+            html=email_content
+        )
+
+        st.success("✅ Email sent successfully 🚀")
+
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 
        
