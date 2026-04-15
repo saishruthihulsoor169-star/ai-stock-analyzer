@@ -12,89 +12,65 @@ EMAIL_PASS = os.getenv("EMAIL_PASS")
 stocks = ["TCS.NS", "INFY.NS"]
 
 
-def get_stock_data(stock):
-    data = yf.download(stock, period="3mo")
-    return data
+def analyze(data):
+    close = data["Close"]
+    start = float(close.iloc[0])
+    end = float(close.iloc[-1])
+
+    change = ((end - start) / start) * 100
+    trend = "UP 📈" if change > 0 else "DOWN 📉"
+
+    score = round(change / 10, 2)
+    sentiment = "Positive 😊" if score > 0 else "Negative 😐"
+    recommendation = "BUY" if score > 0 else "SELL"
+    confidence = min(abs(score) * 10, 95)
+
+    return trend, round(change, 2), sentiment, score, recommendation, confidence
 
 
 def generate_chart(data, stock):
-    plt.figure(figsize=(8, 4))
+    plt.figure(figsize=(6, 3))
     plt.plot(data["Close"])
-    plt.title(f"{stock} Price Chart")
-    plt.xlabel("Days")
-    plt.ylabel("Price")
-    plt.grid()
-
-    filename = f"{stock}.png"
-    plt.savefig(filename)
+    plt.title(stock)
+    file = f"{stock}.png"
+    plt.savefig(file)
     plt.close()
-
-    return filename
-
-
-def analyze(data):
-    start = float(data["Close"].iloc[0])
-    end = float(data["Close"].iloc[-1])
-
-    change = ((end - start) / start) * 100
-
-    if change > 0:
-        trend = "UP 📈"
-    else:
-        trend = "DOWN 📉"
-
-    sentiment_score = round(change / 10, 2)
-
-    sentiment = "Positive 😊" if sentiment_score > 0 else "Negative 😐"
-
-    return trend, round(change, 2), sentiment, sentiment_score
-
-
-def build_email_content(stock, trend, change, sentiment, score):
-    return f"""
-    <h2>📊 AI Stock Analysis Report</h2>
-
-    <h3>{stock}</h3>
-    <p><b>Trend:</b> {trend}</p>
-    <p><b>Change:</b> {change}%</p>
-    <p><b>Sentiment:</b> {sentiment} ({score})</p>
-
-    <ul>
-        <li>Market reacting to earnings</li>
-        <li>AI sector impact visible</li>
-        <li>Investor sentiment slightly shifting</li>
-    </ul>
-
-    <hr>
-    """
+    return file
 
 
 def send_email():
     msg = MIMEMultipart("related")
-    msg["Subject"] = "📊 Daily AI Stock Report"
+    msg["Subject"] = "📊 AI Stock Report"
     msg["From"] = EMAIL_USER
-    msg["To"] = EMAIL_USER   # You can fetch from DB later
+    msg["To"] = EMAIL_USER
 
-    html_content = ""
+    html = "<h2>📊 AI Stock Analysis Report</h2>"
 
     images = []
 
     for stock in stocks:
-        data = get_stock_data(stock)
+        data = yf.download(stock, period="3mo")
+        trend, change, sentiment, score, rec, conf = analyze(data)
 
-        trend, change, sentiment, score = analyze(data)
+        chart = generate_chart(data, stock)
 
-        chart_file = generate_chart(data, stock)
+        html += f"""
+        <h3>{stock}</h3>
+        <p><b>Trend:</b> {trend}</p>
+        <p><b>Change:</b> {change}%</p>
+        <p><b>Sentiment:</b> {sentiment} ({score})</p>
+        <p><b>Recommendation:</b> {rec}</p>
+        <p><b>Confidence:</b> {conf}%</p>
+        <img src="cid:{stock}">
+        <hr>
+        """
 
-        html_content += build_email_content(stock, trend, change, sentiment, score)
-        html_content += f'<img src="cid:{stock}"><br><br>'
-
-        with open(chart_file, "rb") as f:
+        with open(chart, "rb") as f:
             img = MIMEImage(f.read())
             img.add_header("Content-ID", f"<{stock}>")
             images.append(img)
 
-    msg.attach(MIMEText(html_content, "html"))
+    msg.attach(MIMEText(html, "html"))
 
     for img in images:
         msg.attach(img)
