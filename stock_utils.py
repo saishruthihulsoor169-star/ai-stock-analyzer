@@ -4,20 +4,32 @@ import pandas as pd
 
 def get_stock_data(symbol):
     data = yf.download(symbol, period="3mo")
+
+    # 🔥 Fix: ensure clean dataframe
+    if data.empty:
+        return None
+
+    # Sometimes columns are multi-index
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+
     return data
 
 
 def analyze_stock(data):
+    if data is None or data.empty:
+        return None
+
     close = data["Close"]
 
-    start = float(close.iloc[0])
-    end = float(close.iloc[-1])
+    # 🔥 FIX: force scalar values
+    start = float(close.values[0])
+    end = float(close.values[-1])
 
     change = ((end - start) / start) * 100
 
     trend = "UP 📈" if change > 0 else "DOWN 📉"
 
-    # Fake AI sentiment (based on trend strength)
     score = round(change / 10, 2)
 
     if score > 0:
@@ -43,10 +55,9 @@ def analyze_stock(data):
 
 
 def get_news(symbol):
-    # dummy realistic news (no API needed)
     return [
-        f"{symbol} shows movement amid market volatility",
-        f"Analysts discuss future outlook of {symbol}",
-        f"Investors react to recent earnings of {symbol}",
-        f"{symbol} impacted by global tech trends"
+        f"{symbol} reacting to market trends",
+        f"Analysts discuss {symbol} outlook",
+        f"{symbol} influenced by global economy",
+        f"Investors tracking {symbol} performance"
     ]
