@@ -8,7 +8,6 @@ def get_stock_data(symbol):
     if data.empty:
         return None
 
-    # Fix multi-index issue
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
@@ -51,8 +50,8 @@ def analyze_stock(data):
 
 def get_news(symbol):
     return [
-        f"{symbol} sees movement due to earnings impact",
-        f"Market sentiment shifts around {symbol}",
-        f"Analysts discuss future growth of {symbol}",
-        f"{symbol} influenced by global tech trends"
+        f"{symbol} shows strong market reaction",
+        f"Investors tracking {symbol} performance closely",
+        f"{symbol} influenced by global economic trends",
+        f"Analysts share outlook on {symbol}"
     ]
