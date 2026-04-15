@@ -1,27 +1,32 @@
+import os
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 def generate_ai_report(stock, change):
 
-    if change > 2:
-        sentiment = "Positive 😊"
-        recommendation = "BUY"
-    elif change < -2:
-        sentiment = "Negative 😟"
-        recommendation = "SELL"
-    else:
-        sentiment = "Neutral 😐"
-        recommendation = "HOLD"
+    prompt = f"""
+    Analyze stock {stock}.
 
-    confidence = min(abs(change) * 5, 100)
+    Price change: {change}%
 
-    report = f"""
-### 📊 {stock} Analysis
+    Give:
+    - Trend (UP/DOWN)
+    - Sentiment (Positive/Negative/Neutral)
+    - Recommendation (Buy/Sell/Hold)
+    - Confidence %
+    - Short explanation
 
-**Trend:** {'UP 📈' if change > 0 else 'DOWN 📉'}  
-**Change:** {change}%  
-**Sentiment:** {sentiment}  
-**Recommendation:** {recommendation}  
-**Confidence:** {round(confidence,2)}%
+    Keep it clean and professional.
+    """
 
----
-"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
 
-    return report
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"AI Error: {e}"
