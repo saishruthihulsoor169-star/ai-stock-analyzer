@@ -1,15 +1,26 @@
 import yfinance as yf
 import requests
+import pandas as pd
 
 def get_stock_data(symbol):
     try:
-        df = yf.download(symbol, period="6mo")
+        df = yf.download(symbol, period="6mo", auto_adjust=True)
 
         if df is None or df.empty:
             return None
 
-        # 🔥 IMPORTANT FIX
+        # 🔥 FIX ALL DATA ISSUES
+        df = df.reset_index()
+
+        df = df[["Date", "Close"]]
+
         df = df.dropna()
+
+        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+
+        df = df.dropna()
+
+        df.set_index("Date", inplace=True)
 
         return df
 
@@ -19,17 +30,13 @@ def get_stock_data(symbol):
 
 
 def analyze_stock(df):
-    close = df["Close"].dropna()
+    close = df["Close"]
 
-    # 🔥 SAFETY CHECK
     if len(close) < 2:
-        return {
-            "trend": "N/A",
-            "change": 0
-        }
+        return {"trend": "N/A", "change": 0}
 
-    start = float(close.iloc[0])
-    end = float(close.iloc[-1])
+    start = close.iloc[0]
+    end = close.iloc[-1]
 
     change = ((end - start) / start) * 100
 
@@ -37,7 +44,7 @@ def analyze_stock(df):
 
     return {
         "trend": trend,
-        "change": change
+        "change": float(change)
     }
 
 
