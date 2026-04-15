@@ -1,28 +1,54 @@
+import os
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 def generate_ai_report(stock, change):
 
-    if change > 2:
-        return f"""
+    prompt = f"""
+    Analyze stock {stock}.
+
+    Price change: {change}%
+
+    Give:
+    - Trend (UP/DOWN)
+    - Sentiment (Positive/Negative/Neutral)
+    - Recommendation (Buy/Sell/Hold)
+    - Confidence %
+    - Short explanation
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return response.choices[0].message.content
+
+    except Exception:
+        # 🔥 FALLBACK (IMPORTANT)
+        if change > 1:
+            return f"""
 Trend: UP 📈  
 Sentiment: Positive 😊  
-Recommendation: BUY  
+Recommendation: Buy  
 Confidence: 70%  
-Reason: Strong upward movement in price.
+Reason: Strong upward momentum detected.
 """
-
-    elif change < -2:
-        return f"""
+        elif change < -1:
+            return f"""
 Trend: DOWN 📉  
 Sentiment: Negative 😟  
-Recommendation: SELL  
+Recommendation: Sell  
 Confidence: 70%  
-Reason: Continuous decline in stock.
+Reason: Continuous decline in price.
 """
-
-    else:
-        return f"""
+        else:
+            return f"""
 Trend: Sideways ➡️  
 Sentiment: Neutral 😐  
-Recommendation: HOLD  
+Recommendation: Hold  
 Confidence: 60%  
-Reason: No strong trend observed.
+Reason: No strong movement.
 """
