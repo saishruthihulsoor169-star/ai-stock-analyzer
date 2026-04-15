@@ -1,7 +1,6 @@
 import yfinance as yf
 
 
-# 🔹 Fetch stock data
 def get_stock_data(symbol):
     try:
         data = yf.download(symbol, period="6mo", interval="1d")
@@ -17,14 +16,12 @@ def get_stock_data(symbol):
         return None
 
 
-# 🔹 Analyze stock
 def analyze_stock(data):
     try:
-        close_prices = data["Close"]
+        close_prices = data["Close"].values  # ✅ FIXED
 
-        # ✅ Convert properly to float
-        start_price = float(close_prices.iloc[0])
-        end_price = float(close_prices.iloc[-1])
+        start_price = float(close_prices[0])
+        end_price = float(close_prices[-1])
 
         change = ((end_price - start_price) / start_price) * 100
 
@@ -38,24 +35,23 @@ def analyze_stock(data):
             recommendation = "HOLD 🟡"
             sentiment = "Slightly Positive"
         elif change > -2:
-            trend = "Mild Downtrend 📉"
+            trend = "Sideways / Weak 📉"
             recommendation = "HOLD 🟡"
-            sentiment = "Slightly Negative"
+            sentiment = "Neutral"
         else:
             trend = "Strong Downtrend 📉"
             recommendation = "SELL 🔴"
             sentiment = "Negative"
 
-        # 🔹 AI-style explanation
         explanation = f"""
-        The stock moved from {round(start_price,2)} to {round(end_price,2)} 
-        showing a {round(change,2)}% change.
-        
-        Current trend indicates: {trend}.
-        Market sentiment appears: {sentiment}.
-        
-        Based on momentum, the recommendation is: {recommendation}.
-        """
+Stock moved from ₹{round(start_price,2)} → ₹{round(end_price,2)}  
+Change: {round(change,2)}%
+
+Trend: {trend}  
+Market Sentiment: {sentiment}  
+
+AI Suggestion: {recommendation}
+"""
 
         return {
             "trend": trend,
@@ -63,13 +59,6 @@ def analyze_stock(data):
             "recommendation": recommendation,
             "sentiment": sentiment,
             "explanation": explanation,
-            "start_price": round(start_price, 2),
-            "end_price": round(end_price, 2),
-            "news": [
-                "Market reacting to macroeconomic factors",
-                "Stock influenced by sector performance",
-                "Investor sentiment remains dynamic"
-            ]
         }
 
     except Exception as e:
@@ -79,24 +68,4 @@ def analyze_stock(data):
             "recommendation": "N/A",
             "sentiment": "Unknown",
             "explanation": str(e),
-            "start_price": 0,
-            "end_price": 0,
-            "news": [str(e)]
         }
-
-
-# 🔹 Extra metrics (portfolio feel)
-def get_metrics(data):
-    try:
-        latest = data.iloc[-1]
-
-        return {
-            "Open": float(latest["Open"]),
-            "High": float(latest["High"]),
-            "Low": float(latest["Low"]),
-            "Close": float(latest["Close"]),
-            "Volume": int(latest["Volume"])
-        }
-
-    except:
-        return {}
