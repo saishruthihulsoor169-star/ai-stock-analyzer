@@ -15,26 +15,25 @@ def run():
     users = supabase.table("users").select("*").execute().data
 
     if not users:
-        print("No users found")
+        print("No users")
         return
 
     for user in users:
         email = user["email"]
         stock = user["stocks"]
 
-        data = yf.download(stock, period="3mo")
+        data = yf.download(stock, period="3mo", progress=False)
 
-        if data.empty:
+        if data is None or data.empty:
             continue
 
         change = calculate_change(data)
-
-        ai_report = generate_ai_report(stock, change)
+        ai = generate_ai_report(stock, change)
 
         html = f"""
         <h2>📊 AI Stock Report</h2>
         <h3>{stock}</h3>
-        <p>{ai_report.replace('\n','<br>')}</p>
+        <p>{ai.replace('\n','<br>')}</p>
         """
 
         send_email(email, "AI Stock Report", html)
