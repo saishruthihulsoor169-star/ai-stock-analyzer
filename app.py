@@ -27,41 +27,53 @@ if st.button("Analyze"):
     data = get_stock_data(stock)
 
     if data is None:
-        st.error("Invalid stock")
+        st.error("Invalid stock or API issue")
         st.stop()
 
-    # 🔥 PRO GRAPH (PLOTLY)
+    # 🔥 SMOOTH GRAPH
     fig = go.Figure()
+
+    smooth = data["Close"].rolling(5).mean()
 
     fig.add_trace(go.Scatter(
         x=data.index,
         y=data["Close"],
         mode='lines',
+        name="Raw",
+        opacity=0.3
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=smooth,
+        mode='lines',
+        name="Trend",
         line=dict(width=3)
     ))
 
     fig.update_layout(
         template="plotly_dark",
-        title=f"{stock} Price Trend"
+        title=f"{stock} Price Trend",
+        height=400
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # AI
+    # AI OUTPUT
     change = calculate_change(data)
     ai = generate_ai_report(stock, change)
 
     st.subheader("🧠 AI Analysis")
     st.markdown(ai)
 
-    # SAVE USER
+    # SAVE USER (NO DUPLICATE ERROR)
     if email:
         supabase.table("users").upsert({
             "email": email,
             "stocks": stock
         }).execute()
 
-        st.success("Saved & will receive daily report 🚀")
+        st.success("Saved successfully & email will be sent daily 🚀")
 
 
 
