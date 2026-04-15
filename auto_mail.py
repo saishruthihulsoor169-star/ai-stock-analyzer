@@ -13,14 +13,17 @@ stocks = ["TCS.NS", "INFY.NS"]
 
 
 def analyze(data):
-    close = data["Close"]
-    start = float(close.iloc[0])
-    end = float(close.iloc[-1])
+    close = data["Close"].dropna()
+
+    start = float(close.values[0])
+    end = float(close.values[-1])
 
     change = ((end - start) / start) * 100
+
     trend = "UP 📈" if change > 0 else "DOWN 📉"
 
     score = round(change / 10, 2)
+
     sentiment = "Positive 😊" if score > 0 else "Negative 😐"
     recommendation = "BUY" if score > 0 else "SELL"
     confidence = min(abs(score) * 10, 95)
@@ -28,10 +31,9 @@ def analyze(data):
     return trend, round(change, 2), sentiment, score, recommendation, confidence
 
 
-def generate_chart(data, stock):
+def chart(data, stock):
     plt.figure(figsize=(6, 3))
     plt.plot(data["Close"])
-    plt.title(stock)
     file = f"{stock}.png"
     plt.savefig(file)
     plt.close()
@@ -50,9 +52,10 @@ def send_email():
 
     for stock in stocks:
         data = yf.download(stock, period="3mo")
+
         trend, change, sentiment, score, rec, conf = analyze(data)
 
-        chart = generate_chart(data, stock)
+        img_file = chart(data, stock)
 
         html += f"""
         <h3>{stock}</h3>
@@ -65,15 +68,15 @@ def send_email():
         <hr>
         """
 
-        with open(chart, "rb") as f:
+        with open(img_file, "rb") as f:
             img = MIMEImage(f.read())
             img.add_header("Content-ID", f"<{stock}>")
             images.append(img)
 
     msg.attach(MIMEText(html, "html"))
 
-    for img in images:
-        msg.attach(img)
+    for i in images:
+        msg.attach(i)
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(EMAIL_USER, EMAIL_PASS)
