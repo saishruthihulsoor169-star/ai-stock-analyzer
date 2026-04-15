@@ -1,71 +1,52 @@
 import yfinance as yf
+import pandas as pd
 
 
 def get_stock_data(symbol):
-    try:
-        data = yf.download(symbol, period="6mo", interval="1d")
-
-        if data.empty:
-            return None
-
-        data.reset_index(inplace=True)
-        return data
-
-    except Exception as e:
-        print("Error:", e)
-        return None
+    data = yf.download(symbol, period="3mo")
+    return data
 
 
 def analyze_stock(data):
-    try:
-        close_prices = data["Close"].values  # ✅ FIXED
+    close = data["Close"]
 
-        start_price = float(close_prices[0])
-        end_price = float(close_prices[-1])
+    start = float(close.iloc[0])
+    end = float(close.iloc[-1])
 
-        change = ((end_price - start_price) / start_price) * 100
+    change = ((end - start) / start) * 100
 
-        # 🔹 Trend logic
-        if change > 2:
-            trend = "Strong Uptrend 📈"
-            recommendation = "BUY 🟢"
-            sentiment = "Positive"
-        elif change > 0:
-            trend = "Mild Uptrend 📊"
-            recommendation = "HOLD 🟡"
-            sentiment = "Slightly Positive"
-        elif change > -2:
-            trend = "Sideways / Weak 📉"
-            recommendation = "HOLD 🟡"
-            sentiment = "Neutral"
-        else:
-            trend = "Strong Downtrend 📉"
-            recommendation = "SELL 🔴"
-            sentiment = "Negative"
+    trend = "UP 📈" if change > 0 else "DOWN 📉"
 
-        explanation = f"""
-Stock moved from ₹{round(start_price,2)} → ₹{round(end_price,2)}  
-Change: {round(change,2)}%
+    # Fake AI sentiment (based on trend strength)
+    score = round(change / 10, 2)
 
-Trend: {trend}  
-Market Sentiment: {sentiment}  
+    if score > 0:
+        sentiment = "Positive 😊"
+        recommendation = "BUY"
+    elif score < 0:
+        sentiment = "Negative 😐"
+        recommendation = "SELL"
+    else:
+        sentiment = "Neutral 😶"
+        recommendation = "HOLD"
 
-AI Suggestion: {recommendation}
-"""
+    confidence = min(abs(score) * 10, 95)
 
-        return {
-            "trend": trend,
-            "change": f"{round(change,2)}%",
-            "recommendation": recommendation,
-            "sentiment": sentiment,
-            "explanation": explanation,
-        }
+    return {
+        "trend": trend,
+        "change": round(change, 2),
+        "sentiment": sentiment,
+        "score": score,
+        "recommendation": recommendation,
+        "confidence": round(confidence, 2)
+    }
 
-    except Exception as e:
-        return {
-            "trend": "Error",
-            "change": "0%",
-            "recommendation": "N/A",
-            "sentiment": "Unknown",
-            "explanation": str(e),
-        }
+
+def get_news(symbol):
+    # dummy realistic news (no API needed)
+    return [
+        f"{symbol} shows movement amid market volatility",
+        f"Analysts discuss future outlook of {symbol}",
+        f"Investors react to recent earnings of {symbol}",
+        f"{symbol} impacted by global tech trends"
+    ]
