@@ -34,19 +34,20 @@ if st.button("🚀 Analyze Stock"):
 
     result = analyze_stock(data)
 
-    # GRAPH (GOOD LOOKING)
-    st.subheader(f"{symbol} Analysis")
+    # 🔥 PROFESSIONAL GRAPH
+    plt.style.use("dark_background")
 
-    plt.figure(figsize=(10, 4))
-    plt.plot(data["Close"], color="#00ffcc", linewidth=2)
+    fig, ax = plt.subplots(figsize=(12, 4))
 
-    plt.title(symbol, color="white")
-    plt.grid(alpha=0.3)
+    smooth = data["Close"].rolling(5).mean()
 
-    plt.gca().set_facecolor("#0e1117")
-    plt.gcf().patch.set_facecolor("#0e1117")
+    ax.plot(data["Close"], alpha=0.3)
+    ax.plot(smooth, linewidth=2)
 
-    st.pyplot(plt)
+    ax.set_title(f"{symbol} Price Trend")
+    ax.grid(alpha=0.2)
+
+    st.pyplot(fig)
 
     # METRICS
     c1, c2, c3, c4 = st.columns(4)
@@ -63,7 +64,7 @@ if st.button("🚀 Analyze Stock"):
     for n in get_news(symbol):
         st.write("•", n)
 
-    # SAVE USER (NO DUPLICATE ERROR)
+    # SAVE USER
     if email:
         supabase.table("users").upsert({
             "email": email,
