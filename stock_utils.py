@@ -4,22 +4,31 @@ import pandas as pd
 
 def get_stock_data(symbol):
     try:
-        data = yf.download(symbol.strip().upper(), period="6mo", progress=False)
+        symbol = symbol.strip().upper()
+
+        data = yf.download(symbol, period="6mo", progress=False)
+
+        # Retry once if empty (important fix)
+        if data is None or data.empty:
+            data = yf.download(symbol, period="1mo", progress=False)
 
         if data is None or data.empty:
             return None
 
-        # Fix multi-index issue
+        # Flatten columns
         if isinstance(data.columns, pd.MultiIndex):
             data.columns = data.columns.get_level_values(0)
 
-        # Ensure Close exists
+        # Force correct column name
+        data.columns = [col.capitalize() for col in data.columns]
+
         if "Close" not in data.columns:
             return None
 
         return data
 
-    except Exception:
+    except Exception as e:
+        print("Error:", e)
         return None
 
 
