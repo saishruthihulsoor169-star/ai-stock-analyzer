@@ -9,6 +9,7 @@ import os
 # Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(layout="wide")
@@ -23,10 +24,8 @@ with col1:
 with col2:
     email = st.text_input("Email")
 
-# BUTTON
 if st.button("Analyze"):
 
-    # 🔥 FETCH DATA
     data = get_stock_data(stock)
 
     if data is None:
@@ -35,26 +34,21 @@ if st.button("Analyze"):
 
     st.success("✅ Data fetched successfully")
 
-    # =========================
-    # 🔥 GRAPH (FIXED BUT SAME STYLE)
-    # =========================
-
-    clean_data = data.copy()
-
-    smooth = clean_data["Close"].rolling(5).mean()
+    # GRAPH
+    smooth = data["Close"].rolling(5).mean()
 
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=clean_data.index,
-        y=clean_data["Close"],
+        x=data.index,
+        y=data["Close"],
         mode='lines',
         name="Raw",
         opacity=0.3
     ))
 
     fig.add_trace(go.Scatter(
-        x=clean_data.index,
+        x=data.index,
         y=smooth,
         mode='lines',
         name="Trend",
@@ -69,16 +63,11 @@ if st.button("Analyze"):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # =========================
-    # 🔥 ANALYSIS (FIXED VARIABLE)
-    # =========================
-
-    result = analyze_stock(data)   # ✅ NOT df
-
+    # ANALYSIS
+    result = analyze_stock(data)
     change = result["change"]
 
     ai = generate_ai_report(stock, change)
-
     news = get_news(stock)
 
     st.subheader("🧠 AI Analysis")
@@ -88,10 +77,7 @@ if st.button("Analyze"):
     for n in news:
         st.write("•", n)
 
-    # =========================
-    # 🔥 SAVE + EMAIL
-    # =========================
-
+    # SAVE + EMAIL
     if email:
 
         supabase.table("users").upsert({
