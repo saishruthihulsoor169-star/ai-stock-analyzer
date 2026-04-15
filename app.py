@@ -5,6 +5,7 @@ from stock_utils import get_stock_data, calculate_change
 from ai_engine import generate_ai_report
 import os
 
+# Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
@@ -14,6 +15,7 @@ st.set_page_config(layout="wide")
 
 st.title("🚀 AI Stock Dashboard")
 
+# INPUT
 col1, col2 = st.columns(2)
 
 with col1:
@@ -26,18 +28,16 @@ if st.button("Analyze"):
 
     data = get_stock_data(stock)
 
-   data = get_stock_data(stock)
+    if data is None:
+        st.error(f"❌ Could not fetch data for '{stock}'")
+        st.stop()
+    else:
+        st.success("✅ Data fetched successfully")
 
- if data is None:
-     st.error(f"❌ Could not fetch data for '{stock}'. Try AAPL, TSLA, MSFT")
-     st.stop()
- else:
-     st.success("✅ Data fetched successfully")
-
-    # 🔥 SMOOTH GRAPH
-    fig = go.Figure()
-
+    # GRAPH
     smooth = data["Close"].rolling(5).mean()
+
+    fig = go.Figure()
 
     fig.add_trace(go.Scatter(
         x=data.index,
@@ -63,21 +63,21 @@ if st.button("Analyze"):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # AI OUTPUT
+    # AI ANALYSIS
     change = calculate_change(data)
     ai = generate_ai_report(stock, change)
 
     st.subheader("🧠 AI Analysis")
     st.markdown(ai)
 
-    # SAVE USER (NO DUPLICATE ERROR)
+    # SAVE USER
     if email:
         supabase.table("users").upsert({
             "email": email,
             "stocks": stock
         }).execute()
 
-        st.success("Saved successfully & email will be sent daily 🚀")
+        st.success("Saved & will receive email 🚀")
 
 
 
