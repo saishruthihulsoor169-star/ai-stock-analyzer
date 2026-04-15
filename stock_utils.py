@@ -4,15 +4,29 @@ import requests
 def get_stock_data(symbol):
     try:
         df = yf.download(symbol, period="6mo")
-        if df.empty:
+
+        if df is None or df.empty:
             return None
+
+        # 🔥 IMPORTANT FIX
+        df = df.dropna()
+
         return df
-    except:
+
+    except Exception as e:
+        print("Stock fetch error:", e)
         return None
 
 
 def analyze_stock(df):
-    close = df["Close"]
+    close = df["Close"].dropna()
+
+    # 🔥 SAFETY CHECK
+    if len(close) < 2:
+        return {
+            "trend": "N/A",
+            "change": 0
+        }
 
     start = float(close.iloc[0])
     end = float(close.iloc[-1])
@@ -28,12 +42,13 @@ def analyze_stock(df):
 
 
 def get_news(stock):
-    url = f"https://newsapi.org/v2/everything?q={stock}&apiKey={requests.utils.quote('YOUR_NEWS_API_KEY')}"
-
     try:
+        url = f"https://newsapi.org/v2/everything?q={stock}&apiKey=YOUR_NEWS_API_KEY"
         res = requests.get(url).json()
+
         articles = res.get("articles", [])[:5]
 
         return [a["title"] for a in articles]
+
     except:
         return ["No news available"]
