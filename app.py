@@ -26,9 +26,13 @@ if st.button("Analyze"):
 
     data = get_stock_data(stock)
 
-    if data is None:
-        st.error("Invalid stock or API issue")
-        st.stop()
+   data = get_stock_data(stock)
+
+ if data is None:
+     st.error(f"❌ Could not fetch data for '{stock}'. Try AAPL, TSLA, MSFT")
+     st.stop()
+ else:
+     st.success("✅ Data fetched successfully")
 
     # 🔥 SMOOTH GRAPH
     fig = go.Figure()
