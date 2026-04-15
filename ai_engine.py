@@ -7,48 +7,27 @@ def generate_ai_report(stock, change):
 
     prompt = f"""
     Analyze stock {stock}.
-
     Price change: {change}%
 
     Give:
-    - Trend (UP/DOWN)
-    - Sentiment (Positive/Negative/Neutral)
-    - Recommendation (Buy/Sell/Hold)
+    - Trend
+    - Sentiment
+    - Recommendation
     - Confidence %
     - Short explanation
     """
 
     try:
-        response = client.chat.completions.create(
+        res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
+        return res.choices[0].message.content
 
-        return response.choices[0].message.content
-
-    except Exception:
-        # 🔥 FALLBACK (IMPORTANT)
+    except:
         if change > 1:
-            return f"""
-Trend: UP 📈  
-Sentiment: Positive 😊  
-Recommendation: Buy  
-Confidence: 70%  
-Reason: Strong upward momentum detected.
-"""
+            return "Trend: UP 📈 | Sentiment: Positive 😊 | Recommendation: Buy | Confidence: 70%"
         elif change < -1:
-            return f"""
-Trend: DOWN 📉  
-Sentiment: Negative 😟  
-Recommendation: Sell  
-Confidence: 70%  
-Reason: Continuous decline in price.
-"""
+            return "Trend: DOWN 📉 | Sentiment: Negative 😟 | Recommendation: Sell | Confidence: 70%"
         else:
-            return f"""
-Trend: Sideways ➡️  
-Sentiment: Neutral 😐  
-Recommendation: Hold  
-Confidence: 60%  
-Reason: No strong movement.
-"""
+            return "Trend: Neutral ➡️ | Recommendation: Hold"
