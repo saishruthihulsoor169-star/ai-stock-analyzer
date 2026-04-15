@@ -1,9 +1,9 @@
-from mailer import send_email
 import streamlit as st
 import plotly.graph_objects as go
 from supabase import create_client
 from stock_utils import get_stock_data, analyze_stock, get_news
 from ai_engine import generate_ai_report
+from mailer import send_email
 import os
 
 # ---------- SUPABASE ----------
@@ -24,8 +24,10 @@ with col1:
 with col2:
     email = st.text_input("Email")
 
+# ---------- BUTTON ----------
 if st.button("Analyze"):
 
+    # ---------- FETCH DATA ----------
     data = get_stock_data(stock)
 
     if data is None:
@@ -65,7 +67,6 @@ if st.button("Analyze"):
 
     # ---------- ANALYSIS ----------
     result = analyze_stock(data)
-
     change = result["change"]
 
     ai = generate_ai_report(stock, change)
@@ -80,38 +81,41 @@ if st.button("Analyze"):
     for n in news:
         st.write("•", n)
 
-    # ---------- SAVE USER ----------
-   if email:
-    try:
-        supabase.table("users").upsert({
-            "email": email,
-            "stocks": stock
-        }).execute()
+    # ---------- SAVE + EMAIL ----------
+    if email:
+        try:
+            # Save to DB
+            supabase.table("users").upsert({
+                "email": email,
+                "stocks": stock
+            }).execute()
 
-        # 📩 EMAIL CONTENT
-        email_content = f"""
-        📊 AI Stock Report
+            # Email content
+            email_content = f"""
+            <h2>📊 AI Stock Report</h2>
+            <p><b>Stock:</b> {stock}</p>
+            <p><b>Change:</b> {change}%</p>
 
-        Stock: {stock}
-        Change: {change}%
+            <h3>🤖 AI Analysis</h3>
+            <p>{ai}</p>
 
-        🤖 AI Analysis:
-        {ai}
+            <h3>📰 News</h3>
+            <ul>
+            {''.join([f'<li>{n}</li>' for n in news])}
+            </ul>
+            """
 
-        📰 News:
-        """ + "\n".join(news)
+            # Send Email
+            send_email(
+                to_email=email,
+                subject=f"{stock} Stock Report",
+                html=email_content
+            )
 
-        # 🚀 SEND EMAIL
-        send_email(
-            to_email=email,
-            subject=f"{stock} Stock Report",
-            html=email_content
-        )
+            st.success("✅ Email sent successfully 🚀")
 
-        st.success("✅ Email sent successfully 🚀")
-
-    except Exception as e:
-        st.error(f"Error: {e}")
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
 
 
        
