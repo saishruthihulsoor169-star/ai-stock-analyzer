@@ -1,48 +1,47 @@
 import yfinance as yf
-import pandas as pd
 import requests
 import os
 
-
 def get_stock_data(symbol):
     try:
-        df = yf.download(symbol, period="6mo")
+        stock = yf.Ticker(symbol)
+        df = stock.history(period="6mo")
 
-        # If API fails → fallback data
         if df is None or df.empty:
-            dates = pd.date_range(end=pd.Timestamp.today(), periods=100)
-            prices = [150 + i * 0.2 for i in range(100)]
+            return None
 
-            df = pd.DataFrame({"Close": prices}, index=dates)
-            return df
-
-        df = df[["Close"]].dropna()
+        df = df.reset_index()
         return df
 
-    except Exception:
-        # fallback again
-        dates = pd.date_range(end=pd.Timestamp.today(), periods=100)
-        prices = [150 + i * 0.2 for i in range(100)]
-
-        return pd.DataFrame({"Close": prices}, index=dates)
+    except:
+        return None
 
 
 def analyze_stock(df):
     close = df["Close"]
 
-    if len(close) < 2:
-        return {"trend": "N/A", "change": 0}
-
-    start = close.iloc[0]
-    end = close.iloc[-1]
+    start = float(close.iloc[0])
+    end = float(close.iloc[-1])
 
     change = ((end - start) / start) * 100
+    change = round(change, 2)
 
     trend = "UP 📈" if change > 0 else "DOWN 📉"
 
+    if change > 2:
+        rec = "BUY"
+    elif change < -2:
+        rec = "SELL"
+    else:
+        rec = "HOLD"
+
+    confidence = min(abs(change) * 5, 100)
+
     return {
         "trend": trend,
-        "change": float(change)
+        "change": change,
+        "recommendation": rec,
+        "confidence": round(confidence, 2)
     }
 
 
@@ -55,5 +54,5 @@ def get_news(symbol):
 
         return [a["title"] for a in articles]
 
-    except Exception:
+    except:
         return ["No news available"]
