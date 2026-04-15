@@ -1,7 +1,7 @@
 streamlit
 yfinance
 pandas
-supabase
 plotly
+supabase
+requests
 openai
-
