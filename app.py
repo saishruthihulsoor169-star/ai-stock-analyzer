@@ -1,7 +1,8 @@
 import streamlit as st
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from supabase import create_client
-from stock_utils import get_stock_data, analyze_stock, get_news
+from stock_utils import get_stock_data, calculate_change
+from ai_engine import generate_ai_report
 import os
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -11,69 +12,56 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(layout="wide")
 
-st.title("📊 AI Stock Analyzer (Pro Version)")
+st.title("🚀 AI Stock Dashboard")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    symbol = st.text_input("Enter Stock (AAPL, TCS.NS)", "AAPL")
+    stock = st.text_input("Stock Symbol", "AAPL")
 
 with col2:
-    email = st.text_input("Enter Email")
+    email = st.text_input("Email")
 
-portfolio = st.text_input("Portfolio (optional)")
-alert = st.text_input("Alert (optional)")
+if st.button("Analyze"):
 
-if st.button("🚀 Analyze Stock"):
-
-    data = get_stock_data(symbol)
+    data = get_stock_data(stock)
 
     if data is None:
         st.error("Invalid stock")
         st.stop()
 
-    result = analyze_stock(data)
+    # 🔥 PRO GRAPH (PLOTLY)
+    fig = go.Figure()
 
-    # 🔥 PROFESSIONAL GRAPH
-    plt.style.use("dark_background")
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=data["Close"],
+        mode='lines',
+        line=dict(width=3)
+    ))
 
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig.update_layout(
+        template="plotly_dark",
+        title=f"{stock} Price Trend"
+    )
 
-    smooth = data["Close"].rolling(5).mean()
+    st.plotly_chart(fig, use_container_width=True)
 
-    ax.plot(data["Close"], alpha=0.3)
-    ax.plot(smooth, linewidth=2)
+    # AI
+    change = calculate_change(data)
+    ai = generate_ai_report(stock, change)
 
-    ax.set_title(f"{symbol} Price Trend")
-    ax.grid(alpha=0.2)
-
-    st.pyplot(fig)
-
-    # METRICS
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric("Trend", result["trend"])
-    c2.metric("Change %", f"{result['change']}%")
-    c3.metric("Sentiment", result["sentiment"])
-    c4.metric("Confidence", f"{result['confidence']}%")
-
-    st.success(f"Recommendation: {result['recommendation']}")
-
-    # NEWS
-    st.subheader("📰 News")
-    for n in get_news(symbol):
-        st.write("•", n)
+    st.subheader("🧠 AI Analysis")
+    st.markdown(ai)
 
     # SAVE USER
     if email:
         supabase.table("users").upsert({
             "email": email,
-            "stocks": symbol,
-            "portfolio": portfolio,
-            "alert": alert
+            "stocks": stock
         }).execute()
 
-        st.success("Saved successfully!")
+        st.success("Saved & will receive daily report 🚀")
 
 
 
