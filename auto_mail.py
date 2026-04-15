@@ -1,80 +1,46 @@
-import os
-from supabase import create_client
-from stock_utils import get_stock_data
 import smtplib
 from email.mime.text import MIMEText
+import os
+from supabase import create_client
+from stock_utils import get_stock_data, analyze_stock
 
-# =========================
-# 🔐 ENV VARIABLES
-# =========================
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-print("URL:", SUPABASE_URL)
-print("KEY exists:", SUPABASE_KEY is not None)
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("❌ Supabase credentials missing")
+EMAIL_USER = os.environ.get("EMAIL_USER")
+EMAIL_PASS = os.environ.get("EMAIL_PASS")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# =========================
-# 📧 Send Email
-# =========================
-def send_email(to_email, content):
-    msg = MIMEText(content)
-    msg["Subject"] = "📊 Daily Stock Report"
+def send_email(to_email, subject, body):
+    msg = MIMEText(body)
+    msg["Subject"] = subject
     msg["From"] = EMAIL_USER
     msg["To"] = to_email
 
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(EMAIL_USER, EMAIL_PASS)
-    server.send_message(msg)
-    server.quit()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.sendmail(EMAIL_USER, to_email, msg.as_string())
 
-# =========================
-# 🔁 Main Logic
-# =========================
-def run():
-    response = supabase.table("users").select("*").execute()
-    users = response.data
+# FETCH USERS
+users = supabase.table("users").select("*").execute().data
 
-    print("Users:", users)
+print("Users:", users)
 
-    if not users:
-        print("⚠️ No users found")
-        return
+for user in users:
+    stock = user["stocks"]
+    email = user["email"]
 
-    for user in users:
-        email = user.get("email")
-        stocks = user.get("stocks", "")
+    data = get_stock_data(stock)
 
-        if not stocks:
-            continue
+    if data is not None:
+        result = analyze_stock(data)
 
-        stock_list = stocks.split(",")
-
-        report = ""
-
-        for s in stock_list:
-            result = get_stock_data(s.strip())
-
-            if result:
-                report += f"""
-{s.upper()}
-Price: {result['price']}
-Change: {result['change']}%
+        body = f"""
+Stock: {stock}
 Trend: {result['trend']}
------------------------
+Change: {result['change']}
+Recommendation: {result['recommendation']}
 """
 
-        if report:
-            print("Sending to:", email)
-            send_email(email, report)
-
-if __name__ == "__main__":
-    run()
+        send_email(email, f"{stock} Daily Report", body)
