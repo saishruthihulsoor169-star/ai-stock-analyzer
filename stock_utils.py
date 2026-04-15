@@ -1,44 +1,36 @@
 import yfinance as yf
 import pandas as pd
 
-
+# Fetch stock data
 def get_stock_data(symbol):
     try:
-        symbol = symbol.strip().upper()
+        stock = yf.Ticker(symbol)
+        df = stock.history(period="6mo")
 
-        data = yf.download(symbol, period="6mo", progress=False)
+        # DEBUG (important)
+        print("DATA:", df.head())
 
-        # Retry once if empty (important fix)
-        if data is None or data.empty:
-            data = yf.download(symbol, period="1mo", progress=False)
-
-        if data is None or data.empty:
+        if df is None or df.empty:
             return None
 
-        # Flatten columns
-        if isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.get_level_values(0)
-
-        # Force correct column name
-        data.columns = [col.capitalize() for col in data.columns]
-
-        if "Close" not in data.columns:
-            return None
-
-        return data
+        return df
 
     except Exception as e:
-        print("Error:", e)
+        print("ERROR:", e)
         return None
 
 
-def calculate_change(data):
-    close = data["Close"].dropna()
+# Calculate % change
+def calculate_change(df):
+    try:
+        close = df["Close"]
 
-    if len(close) < 2:
+        start = float(close.iloc[0])
+        end = float(close.iloc[-1])
+
+        change = ((end - start) / start) * 100
+
+        return round(change, 2)
+
+    except:
         return 0
-
-    start = float(close.iloc[0])
-    end = float(close.iloc[-1])
-
-    return round(((end - start) / start) * 100, 2)
