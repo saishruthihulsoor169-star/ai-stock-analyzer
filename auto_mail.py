@@ -2,6 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 import os
 
+
 def send_email(to_email, subject, content):
 
     sender = os.getenv("EMAIL_ID")
