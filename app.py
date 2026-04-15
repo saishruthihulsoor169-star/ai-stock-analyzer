@@ -26,6 +26,7 @@ with col2:
 # BUTTON
 if st.button("Analyze"):
 
+    # 🔥 FETCH DATA
     data = get_stock_data(stock)
 
     if data is None:
@@ -34,21 +35,26 @@ if st.button("Analyze"):
 
     st.success("✅ Data fetched successfully")
 
-    # GRAPH
-    smooth = data["Close"].rolling(5).mean()
+    # =========================
+    # 🔥 GRAPH (FIXED BUT SAME STYLE)
+    # =========================
+
+    clean_data = data.copy()
+
+    smooth = clean_data["Close"].rolling(5).mean()
 
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=data.index,
-        y=data["Close"],
+        x=clean_data.index,
+        y=clean_data["Close"],
         mode='lines',
         name="Raw",
         opacity=0.3
     ))
 
     fig.add_trace(go.Scatter(
-        x=data.index,
+        x=clean_data.index,
         y=smooth,
         mode='lines',
         name="Trend",
@@ -63,11 +69,16 @@ if st.button("Analyze"):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # ANALYSIS
-    result = analyze_stock(data)
+    # =========================
+    # 🔥 ANALYSIS (FIXED VARIABLE)
+    # =========================
+
+    result = analyze_stock(data)   # ✅ NOT df
+
     change = result["change"]
 
     ai = generate_ai_report(stock, change)
+
     news = get_news(stock)
 
     st.subheader("🧠 AI Analysis")
@@ -77,7 +88,10 @@ if st.button("Analyze"):
     for n in news:
         st.write("•", n)
 
-    # SAVE + EMAIL
+    # =========================
+    # 🔥 SAVE + EMAIL
+    # =========================
+
     if email:
 
         supabase.table("users").upsert({
@@ -85,7 +99,6 @@ if st.button("Analyze"):
             "stocks": stock
         }).execute()
 
-        # EMAIL CONTENT
         email_content = f"""
 📊 AI Stock Report
 
