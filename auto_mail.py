@@ -32,11 +32,21 @@ def analyze(data):
 
 
 def chart(data, stock):
-    plt.figure(figsize=(6, 3))
-    plt.plot(data["Close"])
+    plt.style.use("dark_background")
+
+    plt.figure(figsize=(8, 4))
+
+    smooth = data["Close"].rolling(5).mean()
+
+    plt.plot(data["Close"], alpha=0.3)
+    plt.plot(smooth, linewidth=2)
+
+    plt.title(stock)
+
     file = f"{stock}.png"
     plt.savefig(file)
     plt.close()
+
     return file
 
 
@@ -46,7 +56,7 @@ def send_email():
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_USER
 
-    html = "<h2>📊 AI Stock Analysis Report</h2>"
+    html = "<h2 style='color:#00ffcc'>📊 AI Stock Analysis Report</h2>"
 
     images = []
 
@@ -58,14 +68,19 @@ def send_email():
         img_file = chart(data, stock)
 
         html += f"""
-        <h3>{stock}</h3>
+        <div style="background:#111;padding:15px;border-radius:10px;margin-bottom:20px">
+
+        <h3 style="color:#00ffcc">{stock}</h3>
+
         <p><b>Trend:</b> {trend}</p>
         <p><b>Change:</b> {change}%</p>
         <p><b>Sentiment:</b> {sentiment} ({score})</p>
         <p><b>Recommendation:</b> {rec}</p>
         <p><b>Confidence:</b> {conf}%</p>
-        <img src="cid:{stock}">
-        <hr>
+
+        <img src="cid:{stock}" width="500">
+
+        </div>
         """
 
         with open(img_file, "rb") as f:
